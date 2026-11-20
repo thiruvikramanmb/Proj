@@ -74,3 +74,11 @@ int main()
     return 0;
 }
 
+
+
+
+
+nano lextoken.l
+flex lextoken.l
+gcc lex.yy.c -o lextoken -lfl
+./lextoken
