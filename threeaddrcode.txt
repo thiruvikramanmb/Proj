@@ -1,0 +1,199 @@
+demo.l:
+
+%{
+#include "y.tab.h"
+%}
+%option noyywrap
+%%
+[0-9] { yylval.sym = yytext[0]; return NUMBER; }
+[a-zA-Z] { yylval.sym = yytext[0]; return LETTER; }
+[ \t\r]+ ;
+\n { return 0; }
+. { return yytext[0]; }
+%%
+
+demo.y:
+
+%{
+#include <stdio.h>
+#include <stdlib.h>
+int yylex(void);
+int yyerror(char *);
+struct code {
+int a, b;
+char op;
+char result;
+} c[20];
+
+int n = 0;
+/* Values 0-255 represent characters.
+Values 256 onwards represent temporary variables. */
+int add(int a, int b, char op)
+{
+if (n >= 20) {
+printf("Code table is full\n");
+exit(1);
+}
+c[n].a = a;
+c[n].b = b;
+c[n].op = op;
+if (op != '=') {
+c[n].result = '\0';
+n++;
+return 256 + n - 1;
+}
+n++;
+return a;
+}
+void printOperand(int x)
+{
+if (x >= 256)
+printf("t%d", x - 256 + 1);
+else
+printf("%c", (char)x);
+}
+void printTripleOperand(int x)
+{
+if (x >= 256)
+printf("(%d)", x - 256);
+else
+printf("%c", (char)x);
+}
+void tac()
+
+{
+int i;
+printf("\nTHREE ADDRESS CODE\n");
+for (i = 0; i < n; i++) {
+if (c[i].op == '=') {
+printf("%c = ", (char)c[i].a);
+printOperand(c[i].b);
+}
+else {
+printf("t%d = ", i + 1);
+printOperand(c[i].a);
+printf(" %c ", c[i].op);
+printOperand(c[i].b);
+}
+printf("\n");
+}
+}
+void quadruple()
+{
+int i;
+printf("\nQUADRUPLE CODE\n");
+printf("Op\tArg1\tArg2\tResult\n");
+for (i = 0; i < n; i++) {
+printf("%c\t", c[i].op);
+printOperand(c[i].a);
+printf("\t");
+if (c[i].op == '=') {
+printOperand(c[i].b);
+printf("\t%c", (char)c[i].a);
+}
+else {
+printOperand(c[i].b);
+printf("\tt%d", i + 1);
+}
+printf("\n");
+
+}
+}
+void triple()
+{
+int i;
+printf("\nTRIPLE CODE\n");
+printf("No\tOp\tArg1\tArg2\n");
+for (i = 0; i < n; i++) {
+printf("(%d)\t%c\t", i, c[i].op);
+if (c[i].op == '=') {
+printTripleOperand(c[i].b);
+printf("\t%c", (char)c[i].a);
+}
+else {
+printTripleOperand(c[i].a);
+printf("\t");
+printTripleOperand(c[i].b);
+}
+printf("\n");
+}
+}
+%}
+%union {
+char sym;
+int val;
+}
+%token <sym> NUMBER LETTER
+%type <val> expr
+%left '+' '-'
+%left '*' '/'
+%right UMINUS
+%start statement
+%%
+
+statement:
+LETTER '=' expr ';'
+{
+add($1, $3, '=');
+}
+;
+expr:
+expr '+' expr
+{
+$$ = add($1, $3, '+');
+}
+| expr '-' expr
+{
+$$ = add($1, $3, '-');
+}
+| expr '*' expr
+{
+$$ = add($1, $3, '*');
+}
+| expr '/' expr
+{
+$$ = add($1, $3, '/');
+}
+| '(' expr ')'
+{
+$$ = $2;
+}
+| NUMBER
+{
+$$ = $1;
+}
+| LETTER
+{
+$$ = $1;
+}
+| '-' expr %prec UMINUS
+{
+$$ = add('0', $2, '-');
+}
+;
+%%
+
+int yyerror(char *s)
+{
+printf("Invalid expression: %s\n", s);
+return 0;
+}
+int main()
+{
+printf("Enter the expression: ");
+if (yyparse() == 0 && n > 0) {
+tac();
+quadruple();
+triple();
+}
+return 0;
+}
+
+
+
+nano three.l
+nano three.y
+bison -y -d three.y
+flex three.l
+gcc y.tab.c lex.yy.c -o three
+./three
