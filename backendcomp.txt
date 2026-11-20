@@ -1,0 +1,104 @@
+exp7.c
+
+
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+char lines[100][100], vars[50];
+int n = 0, v = 0;
+void addVar(char c)
+{
+if (isalpha(c) && !strchr(vars, c))
+{
+int len = strlen(vars);
+vars[len] = c;
+vars[len + 1] = '\0';
+}
+}
+int main()
+{
+char s[100];
+int i, num;
+char d, a, b, op;
+printf("Enter Three Address Code (END to stop):\n");
+while (fgets(s, sizeof(s), stdin))
+{
+s[strcspn(s, "\n")] = '\0';
+if (strcmp(s, "END") == 0)
+break;
+strcpy(lines[n++], s);
+if (sscanf(s, " %c = %c %c %c", &d, &a, &op, &b) == 4)
+{
+addVar(d);
+addVar(a);
+addVar(b);
+}
+else if (sscanf(s, " %c = %d", &d, &num) == 2)
+addVar(d);
+else if (sscanf(s, " %c = %c", &d, &a) == 2)
+{
+addVar(d);
+addVar(a);
+}
+
+}
+printf("\nGenerated 8086 Assembly Code:\n");
+printf(".MODEL SMALL\n.STACK 100H\n.DATA\n");
+for (i = 0; i < strlen(vars); i++)
+printf("%c DW 0\n", vars[i]);
+printf(".CODE\nMAIN PROC\n");
+printf("MOV AX, @DATA\nMOV DS, AX\n");
+for (i = 0; i < n; i++)
+{
+if (sscanf(lines[i], " %c = %d", &d, &num) == 2)
+{
+printf("MOV AX, %d\nMOV %c, AX\n", num, d);
+}
+else if (sscanf(lines[i], " %c = %c %c %c",
+&d, &a, &op, &b) == 4)
+{
+printf("MOV AX, %c\n", a);
+switch (op)
+{
+case '+':
+printf("ADD AX, %c\n", b);
+break;
+case '-':
+printf("SUB AX, %c\n", b);
+break;
+case '*':
+if (isdigit(b))
+printf("MOV BX, %c\n", b);
+else
+printf("MOV BX, %c\n", b);
+printf("IMUL BX\n");
+break;
+case '/':
+printf("CWD\nMOV BX, %c\nIDIV BX\n", b);
+break;
+}
+printf("MOV %c, AX\n", d);
+}
+else if (sscanf(lines[i], " %c = %c", &d, &a) == 2)
+{
+printf("MOV AX, %c\nMOV %c, AX\n", a, d);
+}
+else if (strncmp(lines[i], "print", 5) == 0)
+
+{
+sscanf(lines[i], "print %c", &a);
+printf("; print %c (output routine not included)\n", a);
+}
+}
+printf("MOV AH, 4CH\nINT 21H\n");
+printf("MAIN ENDP\nEND MAIN\n");
+return 0;
+}
+
+
+
+
+
+nano tu.c
+gcc tu.c -o tu
+./tu
