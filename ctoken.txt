@@ -1,0 +1,52 @@
+#include <stdio.h>
+#include <ctype.h>
+#include <string.h>
+
+int main()
+{
+    char str[100];
+    int i = 0;
+
+    printf("Enter a statement: ");
+    fgets(str, sizeof(str), stdin);
+
+    while (str[i] != '\0')
+    {
+        if (isspace(str[i]))
+        {
+            i++;
+        }
+        else if (isalpha(str[i]) || str[i] == '_')
+        {
+            char word[30];
+            int j = 0;
+
+            while (isalnum(str[i]) || str[i] == '_')
+                word[j++] = str[i++];
+
+            word[j] = '\0';
+
+            if (!strcmp(word, "int") || !strcmp(word, "float") ||
+                !strcmp(word, "char") || !strcmp(word, "if") ||
+                !strcmp(word, "else") || !strcmp(word, "while") ||
+                !strcmp(word, "return"))
+                printf("%s - Keyword\n", word);
+            else
+                printf("%s - Identifier\n", word);
+        }
+        else if (isdigit(str[i]))
+        {
+            printf("%c - Constant\n", str[i++]);
+        }
+        else if (strchr("+-*/%=<>", str[i]))
+        {
+            printf("%c - Operator\n", str[i++]);
+        }
+        else
+        {
+            printf("%c - Special Symbol\n", str[i++]);
+        }
+    }
+
+    return 0;
+}
